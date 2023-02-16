@@ -1376,6 +1376,25 @@ Google Platforms:
   files:
     - boards/*/google_*/
 
+Input:
+  status: maintained
+  maintainers:
+    - fabiobaltieri
+  collaborators:
+    - gmarull
+  files:
+    - doc/services/input/
+    - include/zephyr/drivers/input.h
+    - include/zephyr/dt-bindings/input/
+    - include/zephyr/input/
+    - samples/subsys/input/
+    - subsys/input/
+    - tests/subsys/input/
+  description: >-
+    Input subsystem and drivers
+  labels:
+    - "area: Input"
+
 IPC:
   status: maintained
   maintainers:
