@@ -1,0 +1,6 @@
+sample:
+  name: Input Dump Zbus
+tests:
+  sample.input.input_dump_zbus:
+    tags: input
+    build_only: true
