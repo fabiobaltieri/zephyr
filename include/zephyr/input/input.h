@@ -23,6 +23,7 @@
 extern "C" {
 #endif
 
+
 /**
  * @brief Input event structure.
  *
@@ -33,8 +34,12 @@ extern "C" {
 struct input_event {
 	/** Device generating the event or NULL. */
 	const struct device *dev;
-	/** Event type (see @ref INPUT_EV_CODES). */
-	uint16_t type;
+	struct {
+		/** Event sync. */
+		uint16_t sync: 1;
+		/** Event type (see @ref INPUT_EV_CODES). */
+		uint16_t type: 15;
+	};
 	/**
 	 * Event code (see @ref INPUT_KEY_CODES, @ref INPUT_BTN_CODES,
 	 * @ref INPUT_ABS_CODES, @ref INPUT_REL_CODES, @ref INPUT_MSC_CODES).
@@ -113,6 +118,8 @@ static inline int input_report_abs(const struct device *dev,
  */
 bool input_queue_empty(void);
 
+#ifndef CONFIG_INPUT_ZBUS
+
 /**
  * @brief Input listener callback structure.
  */
@@ -120,7 +127,7 @@ struct input_listener {
 	/** `struct device` pointer or NULL. */
 	const struct device *dev;
 	/** The callback function. */
-	void (*callback)(struct input_event *evt, bool sync);
+	void (*callback)(struct input_event *evt);
 };
 
 /**
@@ -139,6 +146,8 @@ struct input_listener {
 		.dev = _dev,                                                   \
 		.callback = _callback,                                         \
 	}
+
+#endif  /* CONFIG_INPUT_ZBUS */
 
 #ifdef __cplusplus
 }

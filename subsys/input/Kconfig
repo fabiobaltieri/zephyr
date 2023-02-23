@@ -18,6 +18,13 @@ config INPUT_INIT_PRIORITY
 	help
 	  Input subsystem and drivers initialization priority.
 
+config INPUT_ZBUS
+	bool "Input subsystem uses zbus to distribute events"
+	select ZBUS
+	default n
+	help
+	  Input subsystem uses zbus to distribute events.
+
 choice INPUT_MODE
 	prompt "Input event processing mode"
 	default INPUT_MODE_THREAD

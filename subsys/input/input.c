@@ -8,13 +8,15 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#ifdef CONFIG_INPUT_ZBUS
+
+#include <zephyr/zbus/zbus.h>
+
+#endif  /* CONFIG_INPUT_ZBUS */
+
 LOG_MODULE_REGISTER(input, CONFIG_INPUT_LOG_LEVEL);
 
 #define INPUT_TYPE_MASK 0x7fff
-
-#define INPUT_TYPE(t) (t & INPUT_TYPE_MASK)
-
-#define INPUT_SYN_IS_SET(v) (v & INPUT_EV_SYN)
 
 #ifdef CONFIG_INPUT_MODE_THREAD
 
@@ -23,18 +25,36 @@ K_MSGQ_DEFINE(input_msgq, sizeof(struct input_event),
 
 #endif
 
-static void input_process(struct input_event *evt)
-{
-	bool sync = INPUT_SYN_IS_SET(evt->type);
 
-	evt->type = INPUT_TYPE(evt->type);
+#if CONFIG_INPUT_ZBUS
+
+ZBUS_CHAN_DEFINE(sys_chan_input,
+		 struct input_event,
+
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS_EMPTY,
+		 ZBUS_MSG_INIT(0));
+
+static void input_process(struct input_event *evt, k_timeout_t timeout)
+{
+	zbus_chan_pub(&sys_chan_input, evt, timeout);
+}
+
+#else /* CONFIG_INPUT_ZBUS */
+
+static void input_process(struct input_event *evt, k_timeout_t timeout)
+{
+	ARG_UNUSED(timeout);
 
 	STRUCT_SECTION_FOREACH(input_listener, listener) {
 		if (listener->dev == NULL || listener->dev == evt->dev) {
-			listener->callback(evt, sync);
+			listener->callback(evt);
 		}
 	}
 }
+
+#endif  /* CONFIG_INPUT_ZBUS */
 
 bool input_queue_empty(void)
 {
@@ -52,6 +72,7 @@ int input_report(const struct device *dev,
 {
 	struct input_event evt = {
 		.dev = dev,
+		.sync = (uint16_t) sync,
 		.type = type,
 		.code = code,
 		.value = value,
@@ -61,14 +82,10 @@ int input_report(const struct device *dev,
 		return -EINVAL;
 	}
 
-	if (sync) {
-		evt.type |= INPUT_EV_SYN;
-	}
-
 #ifdef CONFIG_INPUT_MODE_THREAD
 	return k_msgq_put(&input_msgq, &evt, timeout);
 #else
-	input_process(&evt);
+	input_process(&evt, timeout);
 	return 0;
 #endif
 }
@@ -87,7 +104,7 @@ static void input_thread(void)
 			continue;
 		}
 
-		input_process(&evt);
+		input_process(&evt, K_MSEC(250));
 	}
 }
 
